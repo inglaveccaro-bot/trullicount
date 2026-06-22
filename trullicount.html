@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#2C1A0E">
+<title>TrulliCount</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#E8D9C4;--bg2:#F0E6D3;--cream:#F5EFE4;
+  --stone:#C4A882;--stone-l:#D9C5A8;--stone-d:#8B6F4E;
+  --green:#4A5E3A;--green-d:#303D25;
+  --terra:#8B3A1A;--terra-d:#6B2A10;
+  --text:#2C1A0E;--text-m:#5C3D1E;--text-mu:#8B6F4E;
+  --shadow:rgba(44,26,14,0.18);--border:rgba(139,111,78,0.3);
+}
+html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,sans-serif;overflow:hidden;position:fixed}
+#app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto}
+
+/* SCREENS */
+.screen{display:none;flex-direction:column;height:100%;overflow:hidden}
+.screen.active{display:flex}
+.scrollable{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+
+/* TOPBAR */
+.topbar{background:var(--green);padding:10px 16px 8px;padding-top:calc(env(safe-area-inset-top,10px) + 10px);display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px var(--shadow);flex-shrink:0}
+.topbar-brand{display:flex;align-items:center;gap:8px}
+.topbar-title{font-size:17px;font-weight:700;color:var(--cream);letter-spacing:0.04em;font-family:Georgia,serif}
+.topbar-btn{background:none;border:none;color:rgba(245,239,228,0.65);font-size:13px;cursor:pointer;padding:4px 8px;font-family:sans-serif;letter-spacing:0.05em;position:relative}
+.top-bdg{position:absolute;top:0;right:0;width:8px;height:8px;background:var(--terra);border-radius:50%;display:none}
+.top-bdg.show{display:block}
+
+/* OFFLINE */
+.offline-bar{background:var(--terra);color:#fff;font-size:11px;font-weight:600;text-align:center;padding:5px;letter-spacing:0.1em;display:none;flex-shrink:0}
+.offline-bar.show{display:block}
+
+/* BOTTOM NAV */
+.bnav{background:var(--green);display:flex;border-top:2px solid var(--green-d);padding-bottom:env(safe-area-inset-bottom,0);flex-shrink:0}
+.bnav-btn{flex:1;background:none;border:none;color:rgba(245,239,228,0.45);font-size:8px;letter-spacing:0.08em;text-transform:uppercase;font-family:sans-serif;padding:8px 2px 7px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;touch-action:manipulation;transition:color 0.15s}
+.bnav-btn.active{color:var(--cream)}
+.bnav-btn svg{width:20px;height:20px}
+
+/* CARDS / FORMS */
+.card{background:var(--cream);border:1.5px solid var(--stone);border-radius:14px;box-shadow:0 2px 8px var(--shadow);overflow:hidden}
+.card-pad{padding:14px 16px}
+.section-lbl{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-mu);margin-bottom:8px;font-family:sans-serif}
+.form-lbl{font-size:10px;font-weight:700;letter-spacing:0.12em;color:var(--text-mu);text-transform:uppercase;font-family:sans-serif;margin-bottom:5px;display:block}
+.form-input{width:100%;background:var(--bg2);border:1.5px solid var(--stone);border-radius:8px;color:var(--text);font-size:15px;padding:11px 13px;font-family:Georgia,serif;outline:none;-webkit-appearance:none;transition:border-color 0.2s}
+.form-input:focus{border-color:var(--green)}
+.form-select{width:100%;background:var(--bg2);border:1.5px solid var(--stone);border-radius:8px;color:var(--text);font-size:14px;padding:11px 13px;font-family:sans-serif;outline:none;-webkit-appearance:none;transition:border-color 0.2s}
+.btn{width:100%;border:none;border-radius:10px;font-size:14px;font-weight:700;letter-spacing:0.06em;padding:14px;cursor:pointer;font-family:sans-serif;text-transform:uppercase;touch-action:manipulation;transition:opacity 0.15s,transform 0.1s;-webkit-appearance:none}
+.btn:active{transform:scale(0.98);opacity:0.9}
+.btn-green{background:var(--green);color:var(--cream)}
+.btn-stone{background:var(--stone);color:var(--text)}
+.btn-terra{background:var(--terra);color:#fff}
+.btn-outline-terra{background:none;border:1.5px solid var(--terra);color:var(--terra)}
+.gap{margin-bottom:10px}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 72px);left:50%;transform:translateX(-50%) translateY(20px);background:rgba(44,26,14,0.94);color:var(--cream);border:1px solid var(--stone-d);border-radius:100px;padding:11px 22px;font-size:13px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity 0.25s,transform 0.25s;z-index:999;pointer-events:none;font-family:sans-serif}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* DELTA FLOAT */
+.delta{position:fixed;top:38%;left:50%;transform:translateX(-50%) scale(0.7);font-size:72px;font-weight:700;font-family:Georgia,serif;opacity:0;pointer-events:none;z-index:200;transition:opacity 0.15s,transform 0.15s;text-shadow:0 2px 16px rgba(0,0,0,0.2)}
+.delta.show{opacity:1;transform:translateX(-50%) scale(1)}
+.delta.plus{color:var(--green)}
+.delta.minus{color:var(--terra)}
+
+/* ── LOGIN ── */
+#s-login{background:var(--bg);justify-content:center;align-items:center;padding:32px 28px}
+.login-logo{text-align:center;margin-bottom:20px}
+.login-h1{font-size:34px;font-weight:700;font-family:Georgia,serif;text-align:center;margin-bottom:4px}
+.login-sub{font-size:11px;letter-spacing:0.18em;color:var(--text-mu);text-align:center;text-transform:uppercase;font-family:sans-serif;margin-bottom:36px}
+.login-code{width:100%;background:var(--cream);border:2px solid var(--stone);border-radius:12px;color:var(--text);font-size:28px;text-align:center;letter-spacing:0.3em;padding:18px;font-family:Georgia,serif;outline:none;margin-bottom:14px;-webkit-appearance:none;box-shadow:0 2px 8px var(--shadow);transition:border-color 0.2s}
+.login-code:focus{border-color:var(--green)}
+.login-err{font-size:13px;color:var(--terra);text-align:center;min-height:18px;margin-top:8px;font-family:sans-serif}
+.login-hint{font-size:11px;color:var(--text-mu);text-align:center;margin-top:20px;font-family:sans-serif}
+
+/* ── OPERATORE DASHBOARD ── */
+.ev-bar{background:var(--green);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 6px var(--shadow)}
+.ev-bar-lbl{font-size:9px;letter-spacing:0.16em;color:rgba(245,239,228,0.5);text-transform:uppercase;margin-bottom:2px;font-family:sans-serif}
+.ev-bar-name{font-size:15px;font-weight:700;color:var(--cream);font-family:Georgia,serif}
+.ev-bar-gate{font-size:11px;color:rgba(245,239,228,0.6);font-family:sans-serif;margin-top:2px}
+
+.gauge-card{background:var(--cream);border-radius:16px;border:2px solid var(--stone);padding:16px 16px 14px;margin-bottom:12px;box-shadow:0 3px 12px var(--shadow);display:flex;flex-direction:column;align-items:center;position:relative}
+.gauge-pct{position:absolute;top:12px;right:16px;font-size:22px;font-weight:700;font-family:Georgia,serif;color:var(--terra)}
+.gauge-wrap{position:relative;width:190px;height:190px;margin-bottom:6px}
+.gauge-svg{width:190px;height:190px;transform:rotate(-90deg)}
+.gauge-track{fill:none;stroke:rgba(139,111,78,0.15);stroke-width:14}
+.gauge-fill{fill:none;stroke-width:14;stroke-linecap:round;transition:stroke-dashoffset 0.5s ease,stroke 0.4s}
+.gauge-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.gauge-lbl{font-size:10px;letter-spacing:0.12em;color:var(--text-mu);text-transform:uppercase;font-family:sans-serif;margin-bottom:2px}
+.gauge-val{font-size:28px;font-weight:700;color:var(--text);font-family:Georgia,serif;line-height:1}
+.gauge-cap-txt{font-size:13px;color:var(--text-mu);font-family:sans-serif}
+.gauge-status{font-size:11px;font-weight:700;letter-spacing:0.12em;padding:4px 16px;border-radius:20px;font-family:sans-serif}
+.side-row{display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:6px}
+.side-blk{text-align:center}
+.side-lbl{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;font-family:sans-serif;font-weight:700;margin-bottom:2px}
+.side-num{font-size:36px;font-weight:700;font-family:Georgia,serif;line-height:1;opacity:0.55}
+
+.action-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+.trullo-btn{border:none;cursor:pointer;border-radius:14px;padding:0;overflow:hidden;box-shadow:0 4px 14px var(--shadow);touch-action:manipulation;display:flex;flex-direction:column;align-items:center;transition:transform 0.08s,box-shadow 0.08s}
+.trullo-btn:active{transform:scale(0.96);box-shadow:0 2px 6px var(--shadow)}
+.trullo-btn:disabled{opacity:0.3;pointer-events:none}
+.btn-roof{width:100%;height:30px}
+.btn-roof svg{width:100%;height:100%}
+.btn-body{width:100%;padding:12px 8px 16px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.btn-num{font-size:40px;font-weight:700;font-family:Georgia,serif;line-height:1}
+.btn-lbl{font-size:14px;font-weight:600;letter-spacing:0.05em;font-family:sans-serif}
+.btn-exit .btn-body{background:var(--terra);color:#fff}
+.btn-entry .btn-body{background:var(--green);color:var(--cream)}
+
+/* ── ADMIN DASHBOARD ── */
+.admin-hero{background:var(--green-d);border-radius:14px;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 8px var(--shadow)}
+.admin-hero-ev{font-size:16px;font-weight:700;color:var(--cream);font-family:Georgia,serif}
+.admin-hero-sub{font-size:11px;color:rgba(245,239,228,0.5);font-family:sans-serif;margin-top:3px}
+.admin-hero-pct{font-size:32px;font-weight:700;color:var(--cream);font-family:Georgia,serif;line-height:1}
+.admin-hero-cap{font-size:11px;color:rgba(245,239,228,0.5);font-family:sans-serif;margin-top:2px;text-align:right}
+
+.alert-card{border-radius:12px;padding:12px 14px;margin-bottom:10px;display:none;align-items:center;gap:10px}
+.alert-card.show{display:flex}
+.alert-warn{background:rgba(212,112,10,0.12);border:1.5px solid rgba(212,112,10,0.3);color:#D4700A}
+.alert-risk{background:rgba(139,58,26,0.1);border:1.5px solid rgba(139,58,26,0.25);color:var(--terra)}
+.alert-icon{font-size:22px;flex-shrink:0}
+.alert-title{font-size:13px;font-weight:700;font-family:sans-serif}
+.alert-sub{font-size:11px;opacity:0.7;font-family:sans-serif;margin-top:2px}
+
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.kpi{background:var(--cream);border:1.5px solid var(--stone);border-radius:12px;padding:12px 8px;text-align:center;box-shadow:0 1px 4px var(--shadow)}
+.kpi-lbl{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;font-family:sans-serif;color:var(--text-mu);margin-bottom:4px}
+.kpi-val{font-size:24px;font-weight:700;font-family:Georgia,serif;line-height:1}
+
+.capbar-wrap{background:var(--cream);border:1.5px solid var(--stone);border-radius:12px;padding:12px 14px;margin-bottom:12px;box-shadow:0 1px 4px var(--shadow)}
+.capbar-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.capbar-title{font-size:12px;font-weight:700;font-family:sans-serif}
+.capbar-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;font-family:sans-serif}
+.st-ok{background:var(--green);color:var(--cream)}
+.st-warn{background:#D4700A;color:#fff}
+.st-risk{background:var(--terra);color:#fff}
+.capbar-bg{height:8px;background:rgba(139,111,78,0.15);border-radius:4px}
+.capbar-fill{height:8px;border-radius:4px;transition:width 0.5s,background 0.5s}
+
+.gate-card{background:var(--cream);border:1.5px solid var(--stone);border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px var(--shadow)}
+.gate-card-name{font-size:14px;font-weight:700;font-family:Georgia,serif;margin-bottom:2px}
+.gate-card-type{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-mu);font-family:sans-serif;margin-bottom:8px}
+.gate-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.gate-stat{text-align:center;background:var(--bg2);border-radius:8px;padding:8px 4px}
+.gate-stat-lbl{font-size:9px;letter-spacing:0.08em;text-transform:uppercase;font-family:sans-serif;color:var(--text-mu);margin-bottom:2px}
+.gate-stat-val{font-size:18px;font-weight:700;font-family:Georgia,serif;line-height:1}
+.c-green{color:var(--green)}
+.c-terra{color:var(--terra)}
+
+/* ── EVENTI ADMIN ── */
+.ev-item{background:var(--cream);border:1.5px solid var(--stone);border-radius:12px;padding:14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 4px var(--shadow)}
+.ev-item-name{font-size:15px;font-weight:700;font-family:Georgia,serif}
+.ev-item-loc{font-size:12px;color:var(--text-mu);margin-top:2px;font-family:sans-serif}
+.ev-badge{font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;font-family:sans-serif;flex-shrink:0}
+.ev-badge-active{background:var(--green);color:var(--cream)}
+.ev-badge-closed{background:var(--stone);color:var(--text)}
+.ev-sel{border:2.5px solid var(--green)!important}
+
+.varco-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(139,111,78,0.2)}
+.varco-row:last-child{border-bottom:none}
+.varco-num{width:22px;height:22px;background:var(--green);color:var(--cream);border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:sans-serif;flex-shrink:0}
+.varco-input{flex:1;background:var(--bg2);border:1px solid var(--stone);border-radius:7px;color:var(--text);font-size:13px;padding:8px 10px;font-family:sans-serif;outline:none;-webkit-appearance:none}
+.varco-input:focus{border-color:var(--green)}
+.varco-type-sel{background:var(--bg2);border:1px solid var(--stone);border-radius:7px;color:var(--text);font-size:12px;padding:8px 6px;font-family:sans-serif;outline:none;-webkit-appearance:none;width:70px}
+.varco-del{background:none;border:none;color:var(--terra);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;line-height:1}
+.add-varco-dashed{width:100%;background:none;border:1.5px dashed var(--stone-d);border-radius:10px;color:var(--text-mu);font-size:13px;font-weight:600;padding:12px;cursor:pointer;font-family:sans-serif;text-align:center;margin-top:10px;touch-action:manipulation}
+
+.code-card{background:var(--cream);border:1.5px solid var(--stone);border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 4px var(--shadow);margin-bottom:8px}
+.code-badge{font-size:20px;font-weight:700;font-family:Georgia,serif;letter-spacing:0.15em}
+.code-op{font-size:12px;color:var(--text-mu);font-family:sans-serif}
+.code-gate{font-size:11px;color:var(--green);font-family:sans-serif;font-weight:600}
+.code-actions{display:flex;gap:6px}
+.code-btn{border:none;border-radius:8px;font-size:11px;font-weight:700;padding:7px 11px;cursor:pointer;font-family:sans-serif;touch-action:manipulation}
+.code-copy{background:var(--green);color:var(--cream)}
+.code-del{background:rgba(139,58,26,0.1);color:var(--terra);border:1px solid rgba(139,58,26,0.2)}
+
+/* ── LOG / REPORT ── */
+.feed-chip{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;font-family:sans-serif}
+.chip-in{background:rgba(74,94,58,0.15);color:var(--green)}
+.chip-out{background:rgba(139,58,26,0.1);color:var(--terra)}
+.feed-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(139,111,78,0.12)}
+.feed-row:last-child{border-bottom:none}
+.feed-op{font-size:13px;font-weight:600;font-family:sans-serif}
+.feed-gate{font-size:11px;color:var(--text-mu);font-family:sans-serif}
+.feed-ts{font-size:11px;color:var(--text-mu);font-family:sans-serif;flex-shrink:0;margin-left:auto}
+
+.filter-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:12px}
+.filter-btn{background:var(--cream);border:1.5px solid var(--stone);border-radius:20px;font-size:11px;font-weight:700;padding:6px 14px;cursor:pointer;font-family:sans-serif;white-space:nowrap;touch-action:manipulation;color:var(--text-mu)}
+.filter-btn.active{background:var(--green);border-color:var(--green);color:var(--cream)}
+
+.rep-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(139,111,78,0.15)}
+.rep-row:last-child{border-bottom:none}
+.rep-lbl{font-size:13px;color:var(--text-m);font-family:sans-serif}
+.rep-val{font-size:17px;font-weight:700;font-family:Georgia,serif}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="delta" id="delta"></div>
+<div class="toast" id="toast"></div>
+
+<!-- ══ LOGIN ══ -->
+<div class="screen active" id="s-login" style="background:var(--bg);justify-content:center;align-items:center;padding:32px 28px;">
+  <div style="width:100%;text-align:center;">
+    <div class="login-logo">
+      <svg width="64" height="72" viewBox="0 0 64 72" fill="none">
+        <rect x="8" y="36" width="48" height="32" rx="3" fill="#8B6F4E"/>
+        <rect x="14" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/>
+        <rect x="40" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/>
+        <rect x="27" y="44" width="10" height="24" rx="2" fill="#4A5E3A"/>
+        <polygon points="32,2 4,38 60,38" fill="#5C3D1E"/>
+        <polygon points="32,4 6,38 58,38" fill="#8B3A1A"/>
+        <circle cx="32" cy="14" r="5" fill="#C4A882"/>
+        <polygon points="32,8 28,14 36,14" fill="#F5EFE4"/>
+      </svg>
+    </div>
+    <div class="login-h1">TrulliCount</div>
+    <div class="login-sub">Gestore Eventi</div>
+    <input class="login-code" id="login-input" type="text" placeholder="CODICE"
+      maxlength="10" autocomplete="off" autocorrect="off"
+      autocapitalize="characters" spellcheck="false" inputmode="text"/>
+    <button class="btn btn-green" id="login-btn" onclick="doLogin()">Accedi</button>
+    <div class="login-err" id="login-err"></div>
+    <div class="login-hint">Inserisci il codice ricevuto dall'organizzatore</div>
+  </div>
+</div>
+
+<!-- ══ OPERATORE: DASHBOARD ══ -->
+<div class="screen" id="s-op-dash">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <svg width="22" height="26" viewBox="0 0 64 72" fill="none"><rect x="8" y="36" width="48" height="32" rx="3" fill="#C4A882"/><rect x="14" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/><rect x="40" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/><rect x="27" y="44" width="10" height="24" rx="2" fill="#4A5E3A"/><polygon points="32,2 4,38 60,38" fill="#3D2A10"/><polygon points="32,4 6,38 58,38" fill="#8B3A1A"/><circle cx="32" cy="14" r="5" fill="#C4A882"/></svg>
+      <span class="topbar-title">TrulliCount</span>
+    </div>
+    <button class="topbar-btn" onclick="logout()">Esci</button>
+  </div>
+  <div class="offline-bar" id="ob-op">⚡ OFFLINE — movimenti in coda</div>
+  <div class="scrollable" style="padding:14px 14px 20px;">
+    <div class="ev-bar">
+      <div>
+        <div class="ev-bar-lbl">Evento</div>
+        <div class="ev-bar-name" id="op-ev-name">—</div>
+        <div class="ev-bar-gate" id="op-gate-name">—</div>
+      </div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-pct" id="op-pct">0%</div>
+      <div class="gauge-wrap">
+        <svg class="gauge-svg" viewBox="0 0 190 190">
+          <circle class="gauge-track" cx="95" cy="95" r="78"/>
+          <circle class="gauge-fill" id="op-gauge" cx="95" cy="95" r="78" stroke="#4A5E3A" stroke-dasharray="490" stroke-dashoffset="490"/>
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-lbl">Presenti</div>
+          <div class="gauge-val" id="op-presenti">0</div>
+          <div class="gauge-cap-txt">/ <span id="op-cap">—</span></div>
+        </div>
+      </div>
+      <div class="side-row">
+        <div class="side-blk" style="text-align:left;">
+          <div class="side-lbl" style="color:var(--terra);">Uscite</div>
+          <div class="side-num" id="op-out">0</div>
+        </div>
+        <div class="gauge-status" id="op-status" style="background:var(--green);color:var(--cream);">OTTIMO</div>
+        <div class="side-blk" style="text-align:right;">
+          <div class="side-lbl" style="color:var(--green);">Ingressi</div>
+          <div class="side-num" id="op-in">0</div>
+        </div>
+      </div>
+    </div>
+    <div class="action-btns">
+      <button class="trullo-btn btn-exit" id="btn-out" onclick="tap('OUT')">
+        <div class="btn-roof"><svg viewBox="0 0 160 30" preserveAspectRatio="none"><polygon points="80,3 0,30 160,30" fill="#6B2A10"/></svg></div>
+        <div class="btn-body"><span class="btn-num">−1</span><span class="btn-lbl">Uscita</span></div>
+      </button>
+      <button class="trullo-btn btn-entry" id="btn-in" onclick="tap('IN')">
+        <div class="btn-roof"><svg viewBox="0 0 160 30" preserveAspectRatio="none"><polygon points="80,3 0,30 160,30" fill="#303D25"/></svg></div>
+        <div class="btn-body"><span class="btn-num">+1</span><span class="btn-lbl">Entrata</span></div>
+      </button>
+    </div>
+    <div id="op-queue" style="font-size:12px;color:var(--terra);text-align:center;min-height:16px;font-family:sans-serif;"></div>
+  </div>
+  <div class="bnav" id="bnav-op-dash">
+    <button class="bnav-btn active" onclick="goTo('op-dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Conta</button>
+    <button class="bnav-btn" onclick="goTo('op-log')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Log</button>
+  </div>
+</div>
+
+<!-- ══ OPERATORE: LOG ══ -->
+<div class="screen" id="s-op-log">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <svg width="22" height="26" viewBox="0 0 64 72" fill="none"><rect x="8" y="36" width="48" height="32" rx="3" fill="#C4A882"/><rect x="14" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/><rect x="40" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/><rect x="27" y="44" width="10" height="24" rx="2" fill="#4A5E3A"/><polygon points="32,2 4,38 60,38" fill="#3D2A10"/><polygon points="32,4 6,38 58,38" fill="#8B3A1A"/><circle cx="32" cy="14" r="5" fill="#C4A882"/></svg>
+      <span class="topbar-title">I miei movimenti</span>
+    </div>
+    <button class="topbar-btn" onclick="logout()">Esci</button>
+  </div>
+  <div class="offline-bar" id="ob-op-log">⚡ OFFLINE</div>
+  <div class="scrollable" style="padding:14px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div class="kpi"><div class="kpi-lbl">Ingressi</div><div class="kpi-val c-green" id="op-log-in">0</div></div>
+      <div class="kpi"><div class="kpi-lbl">Uscite</div><div class="kpi-val c-terra" id="op-log-out">0</div></div>
+    </div>
+    <div class="section-lbl">Movimenti recenti</div>
+    <div class="card" id="op-feed-wrap">
+      <div id="op-feed"></div>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bnav-btn" onclick="goTo('op-dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Conta</button>
+    <button class="bnav-btn active" onclick="goTo('op-log')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Log</button>
+  </div>
+</div>
+
+<!-- ══ ADMIN: DASHBOARD ══ -->
+<div class="screen" id="s-adm-dash">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <svg width="22" height="26" viewBox="0 0 64 72" fill="none"><rect x="8" y="36" width="48" height="32" rx="3" fill="#C4A882"/><rect x="14" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/><rect x="40" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/><rect x="27" y="44" width="10" height="24" rx="2" fill="#4A5E3A"/><polygon points="32,2 4,38 60,38" fill="#3D2A10"/><polygon points="32,4 6,38 58,38" fill="#8B3A1A"/><circle cx="32" cy="14" r="5" fill="#C4A882"/></svg>
+      <span class="topbar-title">TrulliCount</span>
+    </div>
+    <button class="topbar-btn" onclick="toggleAlerts()">🔔<span class="top-bdg" id="adm-bdg"></span></button>
+  </div>
+  <div class="offline-bar" id="ob-adm">⚡ OFFLINE</div>
+  <div class="scrollable" style="padding:14px 14px 20px;">
+    <div class="admin-hero">
+      <div>
+        <div style="font-size:9px;letter-spacing:0.16em;color:rgba(245,239,228,0.45);font-family:sans-serif;text-transform:uppercase;margin-bottom:3px;">Evento corrente</div>
+        <div class="admin-hero-ev" id="adm-ev-name">—</div>
+        <div class="admin-hero-sub" id="adm-ev-loc">—</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="admin-hero-pct" id="adm-pct">0%</div>
+        <div class="admin-hero-cap">di <span id="adm-cap">—</span> posti</div>
+      </div>
+    </div>
+    <div class="alert-card" id="adm-alert">
+      <div class="alert-icon" id="adm-alert-icon">⚠</div>
+      <div><div class="alert-title" id="adm-alert-title"></div><div class="alert-sub" id="adm-alert-sub"></div></div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-lbl">Presenti</div><div class="kpi-val" id="adm-presenti">0</div></div>
+      <div class="kpi"><div class="kpi-lbl">Ingressi</div><div class="kpi-val c-green" id="adm-in">0</div></div>
+      <div class="kpi"><div class="kpi-lbl">Uscite</div><div class="kpi-val c-terra" id="adm-out">0</div></div>
+    </div>
+    <div class="capbar-wrap">
+      <div class="capbar-hdr">
+        <div class="capbar-title">Occupazione</div>
+        <div class="capbar-badge st-ok" id="adm-st-badge">OTTIMO</div>
+      </div>
+      <div class="capbar-bg"><div class="capbar-fill" id="adm-capbar" style="width:0%;background:var(--green);"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:10px;color:var(--text-mu);font-family:sans-serif;">
+        <span>0</span><span id="adm-cap-label">0 / 0</span><span id="adm-cap-max">0</span>
+      </div>
+    </div>
+    <div class="section-lbl">Varchi — aggiornamento live</div>
+    <div style="display:flex;flex-direction:column;gap:8px;" id="adm-gate-cards"></div>
+  </div>
+  <div class="bnav" id="bnav-adm-dash">
+    <button class="bnav-btn active" onclick="goTo('adm-dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+    <button class="bnav-btn" onclick="goTo('adm-log')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Log Live</button>
+    <button class="bnav-btn" onclick="goTo('adm-report')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Report</button>
+    <button class="bnav-btn" onclick="goTo('adm-eventi')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Gestione</button>
+  </div>
+</div>
+
+<!-- ══ ADMIN: LOG LIVE ══ -->
+<div class="screen" id="s-adm-log">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <svg width="22" height="26" viewBox="0 0 64 72" fill="none"><rect x="8" y="36" width="48" height="32" rx="3" fill="#C4A882"/><rect x="14" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/><rect x="40" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/><rect x="27" y="44" width="10" height="24" rx="2" fill="#4A5E3A"/><polygon points="32,2 4,38 60,38" fill="#3D2A10"/><polygon points="32,4 6,38 58,38" fill="#8B3A1A"/><circle cx="32" cy="14" r="5" fill="#C4A882"/></svg>
+      <span class="topbar-title">Log movimenti</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;"><div style="width:7px;height:7px;border-radius:50%;background:#6EE7A0;animation:pulse 1.4s infinite;"></div><span style="font-size:10px;color:#6EE7A0;font-family:sans-serif;font-weight:700;letter-spacing:0.1em;">LIVE</span></div>
+  </div>
+  <div class="offline-bar" id="ob-adm-log">⚡ OFFLINE</div>
+  <div class="scrollable" style="padding:14px;">
+    <div class="kpi-row" style="margin-bottom:12px;">
+      <div class="kpi"><div class="kpi-lbl">Presenti</div><div class="kpi-val" id="adm-log-presenti">0</div></div>
+      <div class="kpi"><div class="kpi-lbl">Ingressi</div><div class="kpi-val c-green" id="adm-log-in">0</div></div>
+      <div class="kpi"><div class="kpi-lbl">Uscite</div><div class="kpi-val c-terra" id="adm-log-out">0</div></div>
+    </div>
+    <div class="filter-row" id="adm-filters"></div>
+    <div class="section-lbl">Movimenti recenti <span id="adm-feed-count" style="font-weight:400;"></span></div>
+    <div class="card" id="adm-feed-wrap"><div id="adm-feed"></div></div>
+  </div>
+  <div class="bnav">
+    <button class="bnav-btn" onclick="goTo('adm-dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+    <button class="bnav-btn active" onclick="goTo('adm-log')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Log Live</button>
+    <button class="bnav-btn" onclick="goTo('adm-report')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Report</button>
+    <button class="bnav-btn" onclick="goTo('adm-eventi')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Gestione</button>
+  </div>
+</div>
+
+<!-- ══ ADMIN: REPORT ══ -->
+<div class="screen" id="s-adm-report">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <svg width="22" height="26" viewBox="0 0 64 72" fill="none"><rect x="8" y="36" width="48" height="32" rx="3" fill="#C4A882"/><rect x="14" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/><rect x="40" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/><rect x="27" y="44" width="10" height="24" rx="2" fill="#4A5E3A"/><polygon points="32,2 4,38 60,38" fill="#3D2A10"/><polygon points="32,4 6,38 58,38" fill="#8B3A1A"/><circle cx="32" cy="14" r="5" fill="#C4A882"/></svg>
+      <span class="topbar-title">Report statistico</span>
+    </div>
+  </div>
+  <div class="scrollable" style="padding:14px 14px 20px;">
+    <div style="background:var(--terra);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px var(--shadow);">
+      <div style="font-size:28px;margin-bottom:4px;">📊</div>
+      <div style="font-size:18px;font-weight:700;color:#fff;font-family:Georgia,serif;" id="rep-ev-name">—</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.6);font-family:sans-serif;margin-top:3px;" id="rep-ev-loc">—</div>
+    </div>
+    <div class="capbar-wrap" style="margin-bottom:12px;">
+      <div class="capbar-hdr"><div class="capbar-title">Occupazione evento</div><div style="font-size:16px;font-weight:700;font-family:Georgia,serif;" id="rep-pct">0%</div></div>
+      <div class="capbar-bg"><div class="capbar-fill" id="rep-capbar" style="width:0%;background:var(--green);"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:10px;color:var(--text-mu);font-family:sans-serif;"><span>0</span><span id="rep-cap-lbl">0 / 0</span><span id="rep-cap-max">0</span></div>
+    </div>
+    <div class="card card-pad" style="margin-bottom:12px;">
+      <div class="rep-row"><span class="rep-lbl">Presenti ora</span><span class="rep-val" id="rep-presenti">0</span></div>
+      <div class="rep-row"><span class="rep-lbl">Ingressi totali</span><span class="rep-val c-green" id="rep-in">0</span></div>
+      <div class="rep-row"><span class="rep-lbl">Uscite totali</span><span class="rep-val c-terra" id="rep-out">0</span></div>
+      <div class="rep-row"><span class="rep-lbl">Capienza</span><span class="rep-val" id="rep-cap">0</span></div>
+    </div>
+    <div class="section-lbl">Per varco</div>
+    <div class="card" id="rep-gate-table" style="margin-bottom:12px;"></div>
+    <button class="btn btn-terra" onclick="exportCSV()">📄 Esporta CSV</button>
+  </div>
+  <div class="bnav">
+    <button class="bnav-btn" onclick="goTo('adm-dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+    <button class="bnav-btn" onclick="goTo('adm-log')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Log Live</button>
+    <button class="bnav-btn active" onclick="goTo('adm-report')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Report</button>
+    <button class="bnav-btn" onclick="goTo('adm-eventi')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Gestione</button>
+  </div>
+</div>
+
+<!-- ══ ADMIN: GESTIONE ══ -->
+<div class="screen" id="s-adm-eventi">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <svg width="22" height="26" viewBox="0 0 64 72" fill="none"><rect x="8" y="36" width="48" height="32" rx="3" fill="#C4A882"/><rect x="14" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/><rect x="40" y="42" width="10" height="14" rx="2" fill="#4A5E3A"/><rect x="27" y="44" width="10" height="24" rx="2" fill="#4A5E3A"/><polygon points="32,2 4,38 60,38" fill="#3D2A10"/><polygon points="32,4 6,38 58,38" fill="#8B3A1A"/><circle cx="32" cy="14" r="5" fill="#C4A882"/></svg>
+      <span class="topbar-title">Gestione</span>
+    </div>
+    <button class="topbar-btn" onclick="logout()">Esci</button>
+  </div>
+  <div class="scrollable" style="padding:14px 14px 20px;">
+
+    <!-- EVENTI -->
+    <div class="section-lbl">📅 Eventi</div>
+    <div id="ev-list" style="margin-bottom:10px;"></div>
+    <div class="card card-pad gap">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;font-family:sans-serif;margin-bottom:12px;text-align:center;">Crea nuovo evento</div>
+      <div style="margin-bottom:10px;"><label class="form-lbl">Nome evento</label><input class="form-input" id="ev-nome" type="text" placeholder="Es. Battiti Live"/></div>
+      <div style="margin-bottom:10px;"><label class="form-lbl">Location</label><input class="form-input" id="ev-loc" type="text" placeholder="Es. Area Concerto"/></div>
+      <div style="margin-bottom:14px;"><label class="form-lbl">Capienza massima</label><input class="form-input" id="ev-cap" type="number" inputmode="numeric" placeholder="Es. 2520"/></div>
+      <button class="btn btn-green gap" onclick="creaEvento()">Crea evento</button>
+    </div>
+
+    <!-- VARCHI -->
+    <div class="section-lbl" style="margin-top:6px;">🚪 Varchi — evento selezionato</div>
+    <div id="ev-sel-label" style="font-size:12px;color:var(--text-mu);font-family:sans-serif;margin-bottom:8px;">Seleziona un evento dalla lista</div>
+    <div class="card card-pad gap">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:11px;color:var(--text-mu);font-family:sans-serif;" id="varchi-count">0 varchi</span>
+      </div>
+      <div id="varchi-list"></div>
+      <button class="add-varco-dashed" id="add-varco-btn" onclick="addVarco()">+ Aggiungi varco</button>
+      <div style="margin-top:10px;"><button class="btn btn-green" onclick="saveVarchi()">Salva varchi</button></div>
+    </div>
+
+    <!-- CODICI -->
+    <div class="section-lbl" style="margin-top:6px;">👤 Codici operatore</div>
+    <div class="card card-pad gap">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;font-family:sans-serif;margin-bottom:12px;text-align:center;">Crea codice</div>
+      <div style="margin-bottom:10px;"><label class="form-lbl">Nome operatore</label><input class="form-input" id="op-nome" type="text" placeholder="Es. Mario Rossi"/></div>
+      <div style="margin-bottom:10px;"><label class="form-lbl">Varco assegnato</label><select class="form-select" id="op-varco"><option value="">— seleziona —</option></select></div>
+      <div style="margin-bottom:14px;">
+        <label class="form-lbl">Codice accesso</label>
+        <div style="display:flex;gap:8px;">
+          <input class="form-input" id="op-code" type="text" placeholder="Es. MARIO1" maxlength="10" style="text-transform:uppercase;letter-spacing:0.15em;font-size:18px;flex:1;" oninput="this.value=this.value.toUpperCase()"/>
+          <button onclick="generaCodice()" style="background:var(--stone);border:none;border-radius:8px;padding:12px 14px;cursor:pointer;font-size:12px;font-weight:700;font-family:sans-serif;white-space:nowrap;touch-action:manipulation;">AUTO</button>
+        </div>
+      </div>
+      <button class="btn btn-green" onclick="creaCodice()">Crea codice</button>
+    </div>
+
+    <div class="section-lbl" style="margin-top:6px;">Codici attivi <button onclick="loadCodici()" style="background:none;border:1px solid var(--stone);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:sans-serif;color:var(--text-mu);margin-left:6px;">↺ Aggiorna</button></div>
+    <div id="codici-list"></div>
+
+    <!-- RESET -->
+    <div style="margin-top:6px;">
+      <button class="btn btn-outline-terra" onclick="resetConteggio()">⚠ Reimposta conteggio evento</button>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bnav-btn" onclick="goTo('adm-dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+    <button class="bnav-btn" onclick="goTo('adm-log')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Log Live</button>
+    <button class="bnav-btn" onclick="goTo('adm-report')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Report</button>
+    <button class="bnav-btn active" onclick="goTo('adm-eventi')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Gestione</button>
+  </div>
+</div>
+
+<style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}</style>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════════
+const SB_URL = 'https://pjvahbdsgzqjecszdwaq.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqdmFoYmRzZ3pxamVjc3pkd2FxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMTgwMTEsImV4cCI6MjA5NzY5NDAxMX0.wjCL9cKv7ZqdhcGgeXGmw8oJ2ZwVwE4WYwOdLBl0Bfk';
+const API = SB_URL + '/rest/v1';
+const H = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+
+async function sbGet(table, q='') {
+  const r = await fetch(API+'/'+table+'?'+q, {headers:H});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbPost(table, data, ret='minimal') {
+  const r = await fetch(API+'/'+table, {
+    method:'POST', headers:{...H,'Prefer':'return='+ret}, body:JSON.stringify(data)
+  });
+  if(!r.ok) throw new Error(await r.text());
+  return ret==='representation' ? r.json() : null;
+}
+async function sbPatch(table, q, data) {
+  const r = await fetch(API+'/'+table+'?'+q, {
+    method:'PATCH', headers:{...H,'Prefer':'return=minimal'}, body:JSON.stringify(data)
+  });
+  if(!r.ok) throw new Error(await r.text());
+}
+
+// ══════════════════════════════════════════
+// STATE — singola sorgente di verità
+// ══════════════════════════════════════════
+let S = {
+  session: null,      // {isAdmin, operator, gate, gateId, eventId, eventName, eventLoc, capacity}
+  events: [],         // [{id,name,location,capacity,status}]
+  gates: [],          // [{id,name,type,statsIn,statsOut}]  per evento selezionato/corrente
+  movements: [],      // ultimi 100 movimenti
+  presenti: 0,
+  totalIn: 0,
+  totalOut: 0,
+  selectedEventId: null,  // admin: evento selezionato in gestione
+  activeFilter: 'TUTTI',
+  offline: !navigator.onLine,
+  debouncing: false,
+  realtimeTimer: null,
+  deltaTimer: null,
+};
+
+// ══════════════════════════════════════════
+// IDB OFFLINE QUEUE
+// ══════════════════════════════════════════
+let idb = null;
+function openIDB() {
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('trullicount',1);
+    r.onupgradeneeded=e=>e.target.result.createObjectStore('q',{keyPath:'id'});
+    r.onsuccess=e=>{idb=e.target.result;res()};
+    r.onerror=()=>rej(r.error);
+  });
+}
+async function idbSave(mv){if(!idb)await openIDB();return new Promise((res,rej)=>{const t=idb.transaction('q','readwrite');t.objectStore('q').add(mv);t.oncomplete=res;t.onerror=()=>rej(t.error)});}
+async function idbAll(){if(!idb)await openIDB();return new Promise((res,rej)=>{const t=idb.transaction('q','readonly');const r=t.objectStore('q').getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});}
+async function idbClear(){if(!idb)await openIDB();return new Promise((res,rej)=>{const t=idb.transaction('q','readwrite');t.objectStore('q').clear();t.oncomplete=res;t.onerror=()=>rej(t.error)});}
+
+function uid(){return crypto.randomUUID?crypto.randomUUID():([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));}
+
+// ══════════════════════════════════════════
+// TOAST / DELTA
+// ══════════════════════════════════════════
+let toastT=null;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2800);}
+
+function showDelta(type){
+  const el=document.getElementById('delta');
+  el.textContent=type==='IN'?'+1':'−1';
+  el.className='delta show '+(type==='IN'?'plus':'minus');
+  clearTimeout(S.deltaTimer);
+  S.deltaTimer=setTimeout(()=>el.classList.remove('show'),700);
+}
+
+// ══════════════════════════════════════════
+// SCREENS
+// ══════════════════════════════════════════
+const SCREENS=['login','op-dash','op-log','adm-dash','adm-log','adm-report','adm-eventi'];
+function goTo(name){
+  SCREENS.forEach(s=>document.getElementById('s-'+s)?.classList.remove('active'));
+  document.getElementById('s-'+name)?.classList.add('active');
+  if(name==='adm-dash') renderAdminDash();
+  if(name==='adm-log') renderAdmFeed();
+  if(name==='adm-report') renderReport();
+  if(name==='adm-eventi'){loadEvents();loadCodici();}
+  if(name==='op-log') renderOpFeed();
+}
+
+// ══════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════
+document.getElementById('login-input').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+async function doLogin(){
+  const code=document.getElementById('login-input').value.trim().toUpperCase();
+  const errEl=document.getElementById('login-err');
+  errEl.textContent='';
+  if(!code){errEl.textContent='Inserisci il codice.';return;}
+  if(S.offline){errEl.textContent='Nessuna connessione internet.';return;}
+
+  const btn=document.getElementById('login-btn');
+  btn.textContent='Verifica...';btn.disabled=true;
+
+  try {
+    // 1. Verifica codice
+    const codes = await sbGet('access_codes',`code=eq.${code}&active=eq.true&select=*`);
+    if(!codes.length){errEl.textContent='Codice non valido o scaduto.';return;}
+    const c=codes[0];
+
+    // 2. ADMIN senza event_id → accesso globale
+    if(c.is_admin && !c.event_id){
+      S.session={
+        isAdmin:true,
+        operator:c.operator_name,
+        gate:'',gateId:null,
+        eventId:null,eventName:'',eventLoc:'',capacity:0,
+      };
+      S.selectedEventId=null;
+      S.gates=[];S.presenti=0;S.totalIn=0;S.totalOut=0;S.movements=[];S.activeFilter='TUTTI';
+      goTo('adm-eventi');
+      await loadEvents();
+      return;
+    }
+
+    // 3. Operatore — deve avere event_id
+    if(!c.event_id){errEl.textContent='Codice non configurato correttamente.';return;}
+
+    const evts = await sbGet('events',`id=eq.${c.event_id}&select=*`);
+    if(!evts.length){errEl.textContent='Evento associato non trovato.';return;}
+    const ev=evts[0];
+
+    let gateData=null;
+    if(c.gate_id){
+      const gs=await sbGet('gates',`id=eq.${c.gate_id}&select=*`);
+      gateData=gs[0]||null;
+    }
+
+    const allGates=await sbGet('gates',`event_id=eq.${c.event_id}&order=created_at.asc&select=*`);
+
+    S.session={
+      isAdmin:false,
+      operator:c.operator_name,
+      gate:gateData?.name||'',
+      gateId:c.gate_id||null,
+      eventId:c.event_id,
+      eventName:ev.name,
+      eventLoc:ev.location||'',
+      capacity:ev.capacity||500,
+    };
+    S.selectedEventId=c.event_id;
+    S.gates=allGates.map(g=>({id:g.id,name:g.name,type:g.type,statsIn:0,statsOut:0}));
+    S.presenti=0;S.totalIn=0;S.totalOut=0;S.movements=[];S.activeFilter='TUTTI';
+
+    await refreshData();
+    startRealtime();
+    updateOpDash();
+    goTo('op-dash');
+
+    const q=await idbAll();
+    if(q.length>0) el('op-queue').textContent=q.length+' movimenti offline in attesa';
+
+  } catch(e){
+    console.error(e);
+    errEl.textContent='Errore di connessione. Riprova.';
+  } finally {
+    btn.textContent='Accedi';btn.disabled=false;
+  }
+}
+
+function logout(){
+  stopRealtime();
+  S.session=null;S.gates=[];S.movements=[];S.presenti=0;S.totalIn=0;S.totalOut=0;
+  document.getElementById('login-input').value='';
+  document.getElementById('login-err').textContent='';
+  goTo('login');
+}
+
+// ══════════════════════════════════════════
+// DATA REFRESH (da Supabase)
+// ══════════════════════════════════════════
+async function refreshData(){
+  if(!S.session?.eventId) return;
+  try {
+    const pv=await sbGet('presenti_view',`event_id=eq.${S.session.eventId}`);
+    if(pv.length){S.presenti=pv[0].presenti||0;S.totalIn=pv[0].total_in||0;S.totalOut=pv[0].total_out||0;}
+    const gv=await sbGet('gate_stats_view',`event_id=eq.${S.session.eventId}`);
+    gv.forEach(g=>{
+      const v=S.gates.find(x=>x.id===g.gate_id);
+      if(v){v.statsIn=g.gate_in||0;v.statsOut=g.gate_out||0;}
+    });
+    const mv=await sbGet('movements',`event_id=eq.${S.session.eventId}&order=created_at.desc&limit=100`);
+    S.movements=mv;
+  } catch(e){console.warn('refreshData error:',e);}
+}
+
+// ══════════════════════════════════════════
+// REALTIME (polling ogni 5s)
+// ══════════════════════════════════════════
+function startRealtime(){
+  stopRealtime();
+  S.realtimeTimer=setInterval(async()=>{
+    await refreshData();
+    updateCurrentScreen();
+  },5000);
+}
+function stopRealtime(){
+  if(S.realtimeTimer){clearInterval(S.realtimeTimer);S.realtimeTimer=null;}
+}
+function updateCurrentScreen(){
+  const active=document.querySelector('.screen.active');
+  if(!active) return;
+  const id=active.id;
+  if(id==='s-op-dash') updateOpDash();
+  if(id==='s-op-log') renderOpFeed();
+  if(id==='s-adm-dash') renderAdminDash();
+  if(id==='s-adm-log') renderAdmFeed();
+  if(id==='s-adm-report') renderReport();
+}
+
+// ══════════════════════════════════════════
+// OPERATORE: DASHBOARD
+// ══════════════════════════════════════════
+function updateOpDash(){
+  if(!S.session) return;
+  const {presenti,totalIn,totalOut,session:{capacity,eventName,eventLoc,gate}} = S;
+  const pct=capacity>0?presenti/capacity:0;
+  const pr=Math.round(pct*100);
+  const circ=2*Math.PI*78;
+
+  el('op-ev-name').textContent='"'+eventName+'" — '+eventLoc;
+  el('op-gate-name').textContent='Varco: '+gate;
+  el('op-presenti').textContent=presenti;
+  el('op-cap').textContent=capacity;
+  el('op-in').textContent=totalIn;
+  el('op-out').textContent=totalOut;
+  el('op-pct').textContent=pr+'%';
+
+  const fill=el('op-gauge');
+  fill.setAttribute('stroke-dasharray',circ.toFixed(1));
+  fill.setAttribute('stroke-dashoffset',(circ*(1-Math.min(pct,1))).toFixed(1));
+  fill.setAttribute('stroke',pct>=0.9?'#8B3A1A':pct>=0.8?'#D4700A':'#4A5E3A');
+
+  const stEl=el('op-status');
+  const st=pct>=1?'SATURAZIONE':pct>=0.9?'RISCHIO':pct>=0.8?'ATTENZIONE':'OTTIMO';
+  stEl.textContent='STATO: '+st;
+  stEl.style.background=pct>=0.9?'var(--terra)':pct>=0.8?'#D4700A':'var(--green)';
+}
+
+// ══════════════════════════════════════════
+// OPERATORE: TAP
+// ══════════════════════════════════════════
+async function tap(type){
+  if(S.debouncing) return;
+  S.debouncing=true;setTimeout(()=>S.debouncing=false,300);
+
+  const btnEl=el(type==='IN'?'btn-in':'btn-out');
+  btnEl.disabled=true;setTimeout(()=>btnEl.disabled=false,280);
+
+  if(type==='OUT'&&S.presenti<=0){toast('Presenti già a zero');return;}
+
+  const mv={
+    id:uid(),
+    unique_event_id:uid(),
+    event_id:S.session.eventId,
+    gate_id:S.session.gateId||null,
+    gate_name:S.session.gate,
+    operator_name:S.session.operator,
+    type,
+    created_at:new Date().toISOString(),
+  };
+
+  // Aggiornamento ottimistico
+  if(type==='IN'){S.presenti++;S.totalIn++;}
+  else{S.presenti--;S.totalOut++;}
+  const v=S.gates.find(g=>g.id===S.session.gateId);
+  if(v){if(type==='IN')v.statsIn++;else v.statsOut++;}
+  S.movements.unshift(mv);
+  if(S.movements.length>100)S.movements.pop();
+
+  updateOpDash();
+  showDelta(type);
+  if(navigator.vibrate)navigator.vibrate(type==='IN'?45:[30,40,30]);
+
+  if(S.offline){
+    await idbSave(mv).catch(()=>{});
+    const q=await idbAll().catch(()=>[]);
+    el('op-queue').textContent=q.length+' movimenti in coda offline';
+  } else {
+    sbPost('movements',{
+      unique_event_id:mv.unique_event_id,
+      event_id:mv.event_id,
+      gate_id:mv.gate_id,
+      gate_name:mv.gate_name,
+      operator_name:mv.operator_name,
+      type:mv.type,
+    }).catch(async e=>{
+      console.warn('insert failed:',e);
+      await idbSave(mv).catch(()=>{});
+      S.offline=true;
+      setOffline(true);
+    });
+  }
+}
+
+// ══════════════════════════════════════════
+// OPERATORE: FEED (solo propri movimenti)
+// ══════════════════════════════════════════
+function renderOpFeed(){
+  if(!S.session) return;
+  const mine=S.movements.filter(m=>m.operator_name===S.session.operator&&m.gate_name===S.session.gate);
+  const myIn=mine.filter(m=>m.type==='IN').length;
+  const myOut=mine.filter(m=>m.type==='OUT').length;
+  el('op-log-in').textContent=myIn;
+  el('op-log-out').textContent=myOut;
+  renderFeed('op-feed',mine);
+}
+
+// ══════════════════════════════════════════
+// ADMIN: DASHBOARD
+// ══════════════════════════════════════════
+function renderAdminDash(){
+  if(!S.session) return;
+  const {presenti,totalIn,totalOut,session:{capacity,eventName,eventLoc}} = S;
+  const pct=capacity>0?presenti/capacity:0;
+  const pr=Math.round(pct*100);
+
+  el('adm-ev-name').textContent='"'+eventName+'"';
+  el('adm-ev-loc').textContent=eventLoc;
+  el('adm-pct').textContent=pr+'%';
+  el('adm-cap').textContent=capacity;
+  el('adm-presenti').textContent=presenti;
+  el('adm-in').textContent=totalIn;
+  el('adm-out').textContent=totalOut;
+  el('adm-cap-label').textContent=presenti+' / '+capacity;
+  el('adm-cap-max').textContent=capacity;
+
+  const bar=el('adm-capbar');
+  bar.style.width=Math.min(pr,100)+'%';
+  bar.style.background=pct>=0.9?'var(--terra)':pct>=0.8?'#D4700A':'var(--green)';
+
+  const stBadge=el('adm-st-badge');
+  const st=pct>=1?'SATURAZIONE':pct>=0.9?'RISCHIO':pct>=0.8?'ATTENZIONE':'OTTIMO';
+  stBadge.textContent=st;
+  stBadge.className='capbar-badge '+(pct>=0.9?'st-risk':pct>=0.8?'st-warn':'st-ok');
+
+  const alertEl=el('adm-alert');
+  const bdg=el('adm-bdg');
+  if(pct>=1){
+    alertEl.className='alert-card alert-risk show';
+    el('adm-alert-icon').textContent='🔴';
+    el('adm-alert-title').textContent='SATURAZIONE — stop ingressi';
+    el('adm-alert-sub').textContent='Capienza massima raggiunta';
+    bdg.classList.add('show');
+  } else if(pct>=0.9){
+    alertEl.className='alert-card alert-risk show';
+    el('adm-alert-icon').textContent='⚠';
+    el('adm-alert-title').textContent='Rischio saturazione — '+pr+'%';
+    el('adm-alert-sub').textContent='Limitare gli ingressi';
+    bdg.classList.add('show');
+  } else if(pct>=0.8){
+    alertEl.className='alert-card alert-warn show';
+    el('adm-alert-icon').textContent='⚠';
+    el('adm-alert-title').textContent='Attenzione — '+pr+'% capienza';
+    el('adm-alert-sub').textContent='Monitorare il flusso';
+    bdg.classList.add('show');
+  } else {
+    alertEl.className='alert-card';
+    bdg.classList.remove('show');
+  }
+
+  // Gate cards
+  const cont=el('adm-gate-cards');
+  cont.innerHTML='';
+  S.gates.forEach(g=>{
+    const net=g.statsIn-g.statsOut;
+    const d=document.createElement('div');
+    d.className='gate-card';
+    d.innerHTML=`
+      <div class="gate-card-name">${g.name}</div>
+      <div class="gate-card-type">${g.type}</div>
+      <div class="gate-stats">
+        <div class="gate-stat"><div class="gate-stat-lbl">Ingressi</div><div class="gate-stat-val c-green">+${g.statsIn}</div></div>
+        <div class="gate-stat"><div class="gate-stat-lbl">Uscite</div><div class="gate-stat-val c-terra">-${g.statsOut}</div></div>
+        <div class="gate-stat"><div class="gate-stat-lbl">Netto</div><div class="gate-stat-val" style="color:${net>=0?'var(--green)':'var(--terra)'};">${net>=0?'+':''}${net}</div></div>
+      </div>`;
+    cont.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════
+// ADMIN: LOG FEED (tutti i movimenti, filtrabili per varco)
+// ══════════════════════════════════════════
+function renderAdmFeed(){
+  if(!S.session) return;
+  el('adm-log-presenti').textContent=S.presenti;
+  el('adm-log-in').textContent=S.totalIn;
+  el('adm-log-out').textContent=S.totalOut;
+
+  // Filtri varco
+  const filtersEl=el('adm-filters');
+  filtersEl.innerHTML='';
+  const allBtn=document.createElement('button');
+  allBtn.className='filter-btn'+(S.activeFilter==='TUTTI'?' active':'');
+  allBtn.textContent='Tutti';
+  allBtn.onclick=()=>{S.activeFilter='TUTTI';renderAdmFeed();};
+  filtersEl.appendChild(allBtn);
+  S.gates.forEach(g=>{
+    const btn=document.createElement('button');
+    btn.className='filter-btn'+(S.activeFilter===g.id?' active':'');
+    btn.textContent=g.name;
+    btn.onclick=()=>{S.activeFilter=g.id;renderAdmFeed();};
+    filtersEl.appendChild(btn);
+  });
+
+  let visible=S.activeFilter==='TUTTI'?S.movements:S.movements.filter(m=>m.gate_id===S.activeFilter);
+  el('adm-feed-count').textContent='('+visible.length+')';
+  renderFeed('adm-feed',visible);
+}
+
+// ══════════════════════════════════════════
+// REPORT
+// ══════════════════════════════════════════
+function renderReport(){
+  if(!S.session) return;
+  const {presenti,totalIn,totalOut,session:{capacity,eventName,eventLoc}} = S;
+  const pct=capacity>0?presenti/capacity:0;
+  const pr=Math.round(pct*100);
+
+  el('rep-ev-name').textContent='"'+eventName+'"';
+  el('rep-ev-loc').textContent=eventLoc;
+  el('rep-presenti').textContent=presenti;
+  el('rep-in').textContent=totalIn;
+  el('rep-out').textContent=totalOut;
+  el('rep-cap').textContent=capacity;
+  el('rep-pct').textContent=pr+'%';
+  el('rep-cap-lbl').textContent=presenti+' / '+capacity;
+  el('rep-cap-max').textContent=capacity;
+  const rb=el('rep-capbar');
+  rb.style.width=Math.min(pr,100)+'%';
+  rb.style.background=pct>=0.9?'var(--terra)':pct>=0.8?'#D4700A':'var(--green)';
+
+  const tbl=el('rep-gate-table');
+  tbl.innerHTML='';
+  S.gates.forEach((g,i)=>{
+    const net=g.statsIn-g.statsOut;
+    const row=document.createElement('div');
+    row.className='rep-row';
+    row.style.padding='10px 14px';
+    if(i<S.gates.length-1)row.style.borderBottom='1px solid rgba(139,111,78,0.15)';
+    row.innerHTML=`<span class="rep-lbl" style="font-weight:600;">${g.name}</span>
+      <span style="font-size:12px;font-family:sans-serif;">
+        <span class="c-green">↑${g.statsIn}</span>
+        <span style="margin:0 6px;color:var(--text-mu);">|</span>
+        <span class="c-terra">↓${g.statsOut}</span>
+        <span style="margin:0 6px;color:var(--text-mu);">|</span>
+        <span style="color:${net>=0?'var(--green)':'var(--terra)'};">${net>=0?'+':''}${net}</span>
+      </span>`;
+    tbl.appendChild(row);
+  });
+}
+
+function exportCSV(){
+  const rows=[['timestamp','tipo','varco','operatore']];
+  S.movements.forEach(m=>rows.push([m.created_at,m.type,m.gate_name||'',m.operator_name]));
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='trullicount-'+S.session.eventName.replace(/[^a-z0-9]/gi,'_')+'.csv';
+  a.click();
+  toast('CSV esportato');
+}
+
+// ══════════════════════════════════════════
+// GESTIONE EVENTI (admin)
+// ══════════════════════════════════════════
+let localVarchi=[]; // varchi del selectedEvent in edit
+
+async function loadEvents(){
+  try {
+    const evts=await sbGet('events','order=created_at.desc&select=*');
+    S.events=evts;
+    renderEventList();
+  } catch(e){toast('Errore caricamento eventi');}
+}
+
+function renderEventList(){
+  const cont=el('ev-list');
+  cont.innerHTML='';
+  if(!S.events.length){
+    cont.innerHTML='<div style="text-align:center;color:var(--text-mu);font-size:13px;padding:12px;font-family:sans-serif;">Nessun evento</div>';
+    return;
+  }
+  S.events.forEach(ev=>{
+    const isSelected=ev.id===S.selectedEventId;
+    const isCurrent=ev.id===S.session?.eventId;
+    const d=document.createElement('div');
+    d.className='ev-item'+(isSelected?' ev-sel':'');
+    d.innerHTML=`
+      <div>
+        <div class="ev-item-name">${ev.name}</div>
+        <div class="ev-item-loc">${ev.location||''} · cap. ${ev.capacity}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <span class="ev-badge ${ev.status==='ACTIVE'?'ev-badge-active':'ev-badge-closed'}">${ev.status==='ACTIVE'?'ATTIVO':'CHIUSO'}</span>
+        ${!isSelected?`<button onclick="selectEvent('${ev.id}')" style="background:none;border:1px solid var(--stone);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:sans-serif;color:var(--text-mu);">Seleziona</button>`:'<span style="font-size:10px;color:var(--green);font-family:sans-serif;font-weight:700;">✓ Selezionato</span>'}
+      </div>`;
+    cont.appendChild(d);
+  });
+}
+
+async function selectEvent(evId){
+  S.selectedEventId=evId;
+  const ev=S.events.find(e=>e.id===evId);
+
+  // Aggiorna anche la sessione admin con l'evento selezionato
+  if(S.session?.isAdmin && ev){
+    S.session.eventId=evId;
+    S.session.eventName=ev.name;
+    S.session.eventLoc=ev.location||'';
+    S.session.capacity=ev.capacity||500;
+    S.presenti=0;S.totalIn=0;S.totalOut=0;S.movements=[];
+  }
+
+  el('ev-sel-label').textContent='"'+(ev?.name||'')+'" selezionato';
+  renderEventList();
+
+  try {
+    const gs=await sbGet('gates',`event_id=eq.${evId}&order=created_at.asc&select=*`);
+    localVarchi=gs.map(g=>({id:g.id,name:g.name,type:g.type,isNew:false}));
+    S.gates=gs.map(g=>({id:g.id,name:g.name,type:g.type,statsIn:0,statsOut:0}));
+    renderVarchiList();
+    populateGateSelect();
+    // Carica dati evento selezionato
+    await refreshData();
+    startRealtime();
+  } catch(e){toast('Errore caricamento varchi');}
+}
+
+async function creaEvento(){
+  const nome=el('ev-nome').value.trim();
+  const loc=el('ev-loc').value.trim();
+  const cap=parseInt(el('ev-cap').value)||0;
+  if(!nome){toast('Inserisci il nome evento');return;}
+  if(cap<=0){toast('Inserisci una capienza valida');return;}
+  try {
+    await sbPost('events',{name:nome,location:loc,capacity:cap,status:'ACTIVE'});
+    el('ev-nome').value='';el('ev-loc').value='';el('ev-cap').value='';
+    toast('Evento creato ✓');
+    await loadEvents();
+  } catch(e){
+    if(e.message.includes('duplicate')||e.message.includes('409'))toast('Evento già esistente');
+    else toast('Errore: '+e.message);
+  }
+}
+
+// ══════════════════════════════════════════
+// GESTIONE VARCHI
+// ══════════════════════════════════════════
+function renderVarchiList(){
+  const cont=el('varchi-list');
+  cont.innerHTML='';
+  el('varchi-count').textContent=localVarchi.length+' varchi';
+  localVarchi.forEach((v,i)=>{
+    const row=document.createElement('div');
+    row.className='varco-row';
+    row.innerHTML=`
+      <div class="varco-num">${i+1}</div>
+      <input class="varco-input" value="${v.name}" placeholder="Nome varco" maxlength="20"
+        oninput="localVarchi[${i}].name=this.value;" ${!v.isNew?'':''}/>
+      <select class="varco-type-sel" onchange="localVarchi[${i}].type=this.value;">
+        <option value="ENTRATA" ${v.type==='ENTRATA'?'selected':''}>Entrata</option>
+        <option value="USCITA" ${v.type==='USCITA'?'selected':''}>Uscita</option>
+        <option value="MISTO" ${v.type==='MISTO'?'selected':''}>Misto</option>
+      </select>
+      ${v.isNew?`<button class="varco-del" onclick="removeVarco(${i})">✕</button>`:'<div style="width:28px;"></div>'}
+    `;
+    cont.appendChild(row);
+  });
+}
+
+function addVarco(){
+  if(!S.selectedEventId){toast('Seleziona prima un evento');return;}
+  if(localVarchi.length>=20){toast('Limite massimo 20 varchi');return;}
+  localVarchi.push({id:null,name:'Varco '+(localVarchi.length+1),type:'ENTRATA',isNew:true});
+  renderVarchiList();
+}
+
+function removeVarco(i){
+  localVarchi.splice(i,1);
+  renderVarchiList();
+}
+
+async function saveVarchi(){
+  if(!S.selectedEventId){toast('Seleziona prima un evento');return;}
+  const nuovi=localVarchi.filter(v=>v.isNew&&v.name.trim());
+  if(!nuovi.length){toast('Nessun nuovo varco da salvare');return;}
+  try {
+    for(const v of nuovi){
+      const res=await sbPost('gates',{event_id:S.selectedEventId,name:v.name.trim(),type:v.type},'representation');
+      if(res&&res[0]){v.id=res[0].id;v.isNew=false;}
+    }
+    renderVarchiList();
+    populateGateSelect();
+    // Se l'evento selezionato è quello corrente, aggiorna S.gates
+    if(S.selectedEventId===S.session?.eventId){
+      const gs=await sbGet('gates',`event_id=eq.${S.selectedEventId}&order=created_at.asc&select=*`);
+      S.gates=gs.map(g=>({id:g.id,name:g.name,type:g.type,statsIn:0,statsOut:0}));
+    }
+    toast(nuovi.length+' varchi salvati ✓');
+  } catch(e){toast('Errore salvataggio: '+e.message);}
+}
+
+function populateGateSelect(){
+  const sel=el('op-varco');
+  sel.innerHTML='<option value="">— seleziona —</option>';
+  localVarchi.filter(v=>!v.isNew||v.id).forEach(v=>{
+    const opt=document.createElement('option');
+    opt.value=v.id;
+    opt.textContent=v.name+' ('+v.type+')';
+    sel.appendChild(opt);
+  });
+}
+
+// ══════════════════════════════════════════
+// GESTIONE CODICI
+// ══════════════════════════════════════════
+function generaCodice(){
+  const nome=el('op-nome').value.trim();
+  const base=nome?nome.toUpperCase().replace(/[^A-Z]/g,'').substring(0,5):'OP';
+  el('op-code').value=base+Math.floor(Math.random()*900+100);
+}
+
+async function creaCodice(){
+  if(!S.selectedEventId){toast('Seleziona prima un evento');return;}
+  const nome=el('op-nome').value.trim();
+  const gateId=el('op-varco').value;
+  const code=el('op-code').value.trim().toUpperCase();
+  if(!nome){toast('Inserisci il nome operatore');return;}
+  if(!gateId){toast('Seleziona un varco');return;}
+  if(code.length<3){toast('Codice troppo corto (min 3 caratteri)');return;}
+  try {
+    await sbPost('access_codes',{
+      code,event_id:S.selectedEventId,gate_id:gateId,
+      operator_name:nome,is_admin:false,active:true
+    });
+    el('op-nome').value='';el('op-code').value='';el('op-varco').value='';
+    toast('Codice '+code+' creato ✓');
+    loadCodici();
+  } catch(e){
+    if(e.message.includes('23505')||e.message.includes('duplicate'))toast('Codice già esistente — cambialo');
+    else toast('Errore: '+e.message);
+  }
+}
+
+async function loadCodici(){
+  if(!S.selectedEventId){
+    el('codici-list').innerHTML='<div style="text-align:center;color:var(--text-mu);font-size:13px;padding:12px;font-family:sans-serif;">Seleziona un evento</div>';
+    return;
+  }
+  el('codici-list').innerHTML='<div style="text-align:center;color:var(--text-mu);font-size:13px;padding:12px;font-family:sans-serif;">Caricamento...</div>';
+  try {
+    const codes=await sbGet('access_codes',`event_id=eq.${S.selectedEventId}&active=eq.true&is_admin=eq.false&order=created_at.desc&select=*`);
+    const gates=await sbGet('gates',`event_id=eq.${S.selectedEventId}&select=id,name`);
+    const gMap={};gates.forEach(g=>gMap[g.id]=g.name);
+
+    const cont=el('codici-list');
+    cont.innerHTML='';
+    if(!codes.length){
+      cont.innerHTML='<div style="text-align:center;color:var(--text-mu);font-size:13px;padding:12px;font-family:sans-serif;">Nessun codice attivo</div>';
+      return;
+    }
+    codes.forEach(c=>{
+      const d=document.createElement('div');
+      d.className='code-card';
+      d.innerHTML=`
+        <div>
+          <div class="code-badge">${c.code}</div>
+          <div class="code-op">${c.operator_name}</div>
+          <div class="code-gate">${gMap[c.gate_id]||'—'}</div>
+        </div>
+        <div class="code-actions">
+          <button class="code-btn code-copy" onclick="copiaCodice('${c.code}')">📋 Copia</button>
+          <button class="code-btn code-del" onclick="disattivaCodice('${c.id}')">✕</button>
+        </div>`;
+      cont.appendChild(d);
+    });
+  } catch(e){el('codici-list').innerHTML='<div style="color:var(--terra);text-align:center;padding:12px;font-family:sans-serif;font-size:13px;">Errore caricamento</div>';}
+}
+
+function copiaCodice(code){
+  navigator.clipboard.writeText(code).then(()=>toast('"'+code+'" copiato ✓')).catch(()=>toast('Codice: '+code));
+}
+
+async function disattivaCodice(id){
+  if(!confirm('Disattivare questo codice?')) return;
+  try {
+    await sbPatch('access_codes','id=eq.'+id,{active:false});
+    toast('Codice disattivato ✓');
+    loadCodici();
+  } catch(e){toast('Errore disattivazione');}
+}
+
+// ══════════════════════════════════════════
+// RESET CONTEGGIO
+// ══════════════════════════════════════════
+async function resetConteggio(){
+  if(!S.session?.eventId){toast('Nessun evento attivo');return;}
+  if(!confirm('Eliminare TUTTI i movimenti di questo evento? Operazione irreversibile.')) return;
+  // Non eliminiamo da Supabase (immutabilità) — solo reset locale
+  // In produzione si userebbe un campo "reset_at" sull'evento
+  S.presenti=0;S.totalIn=0;S.totalOut=0;S.movements=[];
+  S.gates.forEach(g=>{g.statsIn=0;g.statsOut=0;});
+  toast('Conteggio locale azzerato');
+  renderAdminDash();
+}
+
+// ══════════════════════════════════════════
+// ALERTS
+// ══════════════════════════════════════════
+function toggleAlerts(){
+  const pct=S.session?S.presenti/S.session.capacity:0;
+  if(pct>=0.9)toast('🔴 Rischio saturazione: '+Math.round(pct*100)+'%');
+  else if(pct>=0.8)toast('⚠ Attenzione: '+Math.round(pct*100)+'% capienza');
+  else toast('✓ Situazione normale: '+Math.round(pct*100)+'%');
+}
+
+// ══════════════════════════════════════════
+// FEED RENDERER (generico)
+// ══════════════════════════════════════════
+function renderFeed(containerId, items){
+  const cont=el(containerId);
+  cont.innerHTML='';
+  if(!items||!items.length){
+    cont.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-mu);font-family:sans-serif;font-size:13px;">Nessun movimento</div>';
+    return;
+  }
+  items.slice(0,50).forEach(m=>{
+    const ts=new Date(m.created_at).toLocaleTimeString('it-IT');
+    const r=document.createElement('div');
+    r.className='feed-row';
+    r.innerHTML=`
+      <div class="feed-chip ${m.type==='IN'?'chip-in':'chip-out'}">${m.type}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="feed-op">${m.operator_name}</div>
+        <div class="feed-gate">${m.gate_name||''}</div>
+      </div>
+      <div class="feed-ts">${ts}</div>`;
+    cont.appendChild(r);
+  });
+}
+
+// ══════════════════════════════════════════
+// OFFLINE
+// ══════════════════════════════════════════
+function setOffline(v){
+  S.offline=v;
+  ['ob-op','ob-op-log','ob-adm','ob-adm-log'].forEach(id=>{
+    const el2=document.getElementById(id);
+    if(el2) v?el2.classList.add('show'):el2.classList.remove('show');
+  });
+}
+window.addEventListener('online',async()=>{
+  setOffline(false);
+  toast('Connessione ripristinata');
+  const q=await idbAll().catch(()=>[]);
+  if(!q.length) return;
+  toast('Sincronizzazione '+q.length+' movimenti...');
+  let ok=0;
+  for(const mv of q){
+    try{
+      await sbPost('movements',{
+        unique_event_id:mv.unique_event_id,event_id:mv.event_id,
+        gate_id:mv.gate_id,gate_name:mv.gate_name,
+        operator_name:mv.operator_name,type:mv.type
+      });
+      ok++;
+    }catch(e){break;}
+  }
+  if(ok===q.length){await idbClear();el('op-queue').textContent='';toast('Sync completata ✓');}
+  else toast('Sincronizzati '+ok+'/'+q.length);
+});
+window.addEventListener('offline',()=>{setOffline(true);toast('Modalità offline attiva');});
+if(S.offline) setOffline(true);
+
+// ══════════════════════════════════════════
+// UTILITY
+// ══════════════════════════════════════════
+function el(id){return document.getElementById(id);}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+openIDB().catch(()=>{});
+document.getElementById('login-input').focus();
+</script>
+</div>
+</body>
+</html>
