@@ -728,6 +728,10 @@ function startRealtime(eventId) {
 function stopRealtime() {
   if(realtimeInterval) { clearInterval(realtimeInterval); realtimeInterval=null; }
 }
+
+// ── APP CONFIG ──
+const MAX_VARCHI = 20;
+const DEMO_CODES = {
   'VARCO1': { gate:'Varco A', event:'"Battiti Live" — Area Concerto', operator:'Operatore 1', isAdmin:false },
   'VARCO2': { gate:'Varco B', event:'"Battiti Live" — Area Concerto', operator:'Operatore 2', isAdmin:false },
   'ADMIN9': { gate:'Admin',  event:'"Battiti Live" — Area Concerto', operator:'Admin',        isAdmin:true  },
@@ -771,9 +775,7 @@ async function idbClear() {
 }
 function uuid() { return crypto&&crypto.randomUUID?crypto.randomUUID():'x'.repeat(8).replace(/x/g,()=>(Math.random()*16|0).toString(16)); }
 
-// ── APP CONFIG ──
-const MAX_VARCHI = 20;
-const DEMO_CODES = {
+// ── NAV ICONS ──
 const NAV_ICONS = {
   dashboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
   admin:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
